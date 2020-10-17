@@ -88,7 +88,7 @@
     <property name="currentIndex">
      <number>1</number>
     </property>
-    <widget class="QWidget" name="tab">
+    <widget class="QWidget" name="tabBurning">
      <attribute name="title">
       <string>Burning</string>
      </attribute>
@@ -221,7 +221,7 @@
       </property>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_2">
+    <widget class="QWidget" name="tabCurrentControl">
      <attribute name="title">
       <string>Current control</string>
      </attribute>
@@ -359,14 +359,17 @@
       <property name="prefix">
        <string>Corrector 1 start position </string>
       </property>
+      <property name="minimum">
+       <number>-32000</number>
+      </property>
       <property name="maximum">
-       <number>65000</number>
+       <number>32000</number>
       </property>
       <property name="singleStep">
        <number>50</number>
       </property>
       <property name="value">
-       <number>5000</number>
+       <number>0</number>
       </property>
      </widget>
      <widget class="QSpinBox" name="corrector2startPosition">
@@ -381,14 +384,17 @@
       <property name="prefix">
        <string>Corrector 2 start position </string>
       </property>
+      <property name="minimum">
+       <number>-32000</number>
+      </property>
       <property name="maximum">
-       <number>65000</number>
+       <number>32000</number>
       </property>
       <property name="singleStep">
        <number>50</number>
       </property>
       <property name="value">
-       <number>5000</number>
+       <number>0</number>
       </property>
      </widget>
      <widget class="QSpinBox" name="correctorsPositionMult">
@@ -510,8 +516,11 @@
         <height>16</height>
        </rect>
       </property>
+      <property name="minimum">
+       <number>-127</number>
+      </property>
       <property name="maximum">
-       <number>255</number>
+       <number>127</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -526,8 +535,11 @@
         <height>16</height>
        </rect>
       </property>
+      <property name="minimum">
+       <number>-127</number>
+      </property>
       <property name="maximum">
-       <number>255</number>
+       <number>127</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>

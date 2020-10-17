@@ -32,18 +32,26 @@ correctorControl::correctorControl(QWidget *parent) :
     connect(ui->correctorsPositionMult, SIGNAL(valueChanged(int)), this, SLOT(changeCorrectorsMult(int)), Qt::QueuedConnection);
     connect(ui->correctorsNum, SIGNAL(valueChanged(int)), this, SLOT(changeCorrectorsNum(int)), Qt::QueuedConnection);
     connect(ui->positionsNum, SIGNAL(valueChanged(int)), this, SLOT(changeCorrectorsPositionsNum(int)), Qt::QueuedConnection);
-    connect(ui->extPositionControl, SIGNAL(toggled(bool)), this, SLOT(changeExtPositionMode(bool)), Qt::QueuedConnection);
-    connect(ui->corrector1startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromnterface()), Qt::QueuedConnection);
-    connect(ui->corrector2startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromnterface()), Qt::QueuedConnection);
-    connect(ui->corrector1address, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromnterface()), Qt::QueuedConnection);
-    connect(ui->corrector2address, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromnterface()), Qt::QueuedConnection);
-    connect(ui->correctorPositionsTable, SIGNAL(cellChanged(int,int)), this, SLOT(readSettingsFromnterface()), Qt::QueuedConnection);
+    //connect(ui->extPositionControl, SIGNAL(toggled(bool)), this, SLOT(changeExtPositionMode(bool)), Qt::QueuedConnection);
+    connect(ui->corrector1startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromInterface()), Qt::QueuedConnection);
+    connect(ui->corrector2startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromInterface()), Qt::QueuedConnection);
+    connect(ui->corrector1address, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromInterface()), Qt::QueuedConnection);
+    connect(ui->corrector2address, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromInterface()), Qt::QueuedConnection);
+    connect(ui->correctorPositionsTable, SIGNAL(cellChanged(int,int)), this, SLOT(readSettingsFromInterface()), Qt::QueuedConnection);
 
     connect(ui->readSettings, SIGNAL(pressed()), this, SLOT(readSettingsFromController()));
     connect(ui->writeSettings, SIGNAL(pressed()), this, SLOT(writeSettingsToController()));
     connect(ui->readSettingsFromEeprom, SIGNAL(pressed()), this, SLOT(readSettingsFromEeprom()));
     connect(ui->writeSettingsToEeprom, SIGNAL(pressed()), this, SLOT(writeSettingsToEeprom()));
     connect(ui->clearErrors, SIGNAL(pressed()), this, SLOT(clearErrors()));
+
+    connect(ui->corrector1currentPosition, SIGNAL(valueChanged(int)), this, SLOT(refleshCurrentCorrectorValues()));
+    connect(ui->corrector2currentPosition, SIGNAL(valueChanged(int)), this, SLOT(refleshCurrentCorrectorValues()));
+
+    connect(ui->corrector1currentPosition, SIGNAL(sliderReleased()), this, SLOT(readExtValuesFromInterface()));
+    connect(ui->corrector2currentPosition, SIGNAL(sliderReleased()), this, SLOT(readExtValuesFromInterface()));
+    connect(ui->extPositionControl, SIGNAL(toggled(bool)), this, SLOT(readExtValuesFromInterface()));
+    connect(ui->correctorsPositionMult, SIGNAL(valueChanged(int)), this, SLOT(readExtValuesFromInterface()));
 
     m_tmr.setInterval(10);
     m_tmr.setSingleShot(false);
@@ -62,6 +70,9 @@ correctorControl::correctorControl(QWidget *parent) :
 
     loadDefaultSettings();
     displaySettings();
+
+    readExtValuesFromInterface();
+    ui->tabCurrentControl->setEnabled(false);
 }
 
 correctorControl::~correctorControl()
@@ -81,7 +92,7 @@ void correctorControl::refleshComList()
 void correctorControl::connectToCom()
 {
     QWidget* widgets_locked[] = { ui->com_list, ui->com_reflesh  };
-    QWidget* widgets_unlocked[] = { ui->writeToFlash, ui->readFromFlash  };
+    QWidget* widgets_unlocked[] = { ui->writeToFlash, ui->readFromFlash, ui->tabCurrentControl };
     if (ui->connect->text() == "Connect")   {
         m_com.setPortName(m_com_list.at(ui->com_list->currentIndex()).portName());
         if (m_com.open(QSerialPort::ReadWrite))   {
@@ -239,6 +250,7 @@ void correctorControl::readComData()
             if (sum != m_comDataPack[i + CURRENT_DATA_SIZE - 1])
             {
                 toLog("Received current values with uncorrect checksum");
+                m_comDataPack = m_comDataPack.mid(i + CURRENT_DATA_SIZE);
                 continue;
             }
             displayCurrentValues(m_comDataPack.mid(i + 2, CURRENT_DATA_SIZE - 3));
@@ -435,7 +447,7 @@ void correctorControl::changeCorrectorsMult(int mult)
     ui->corrector2startPosition->setSingleStep(mult);
     ui->corrector1startPosition->setMaximum(mult * 255);
     ui->corrector2startPosition->setMaximum(mult * 255);
-    readSettingsFromnterface();
+    readSettingsFromInterface();
 }
 
 void correctorControl::changeCorrectorsNum(int num)
@@ -448,7 +460,7 @@ void correctorControl::changeCorrectorsNum(int num)
     }
     else
         ui->correctorPositionsTable->setColumnCount(num + 1);
-    readSettingsFromnterface();
+    readSettingsFromInterface();
 }
 
 void correctorControl::changeCorrectorsPositionsNum(int num)
@@ -462,7 +474,7 @@ void correctorControl::changeCorrectorsPositionsNum(int num)
     }
     else
         ui->correctorPositionsTable->setRowCount(num);
-    readSettingsFromnterface();
+    readSettingsFromInterface();
 }
 
 void correctorControl::changeExtPositionMode(bool isExtPositionChecked)
@@ -477,17 +489,17 @@ void correctorControl::displaySettings()
     disconnect(ui->correctorsNum, SIGNAL(valueChanged(int)), this, SLOT(changeCorrectorsNum(int)));
     disconnect(ui->positionsNum, SIGNAL(valueChanged(int)), this, SLOT(changeCorrectorsPositionsNum(int)));
     disconnect(ui->extPositionControl, SIGNAL(toggled(bool)), this, SLOT(changeExtPositionMode(bool)));
-    disconnect(ui->corrector1startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromnterface()));
-    disconnect(ui->corrector2startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromnterface()));
-    disconnect(ui->correctorPositionsTable, SIGNAL(cellChanged(int,int)), this, SLOT(readSettingsFromnterface()));
+    disconnect(ui->corrector1startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromInterface()));
+    disconnect(ui->corrector2startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromInterface()));
+    disconnect(ui->correctorPositionsTable, SIGNAL(cellChanged(int,int)), this, SLOT(readSettingsFromInterface()));
 
     ui->correctorsNum->setValue(m_settings[0]);
     ui->positionsNum->setValue(m_settings[1]);
     ui->correctorsPositionMult->setValue((static_cast<uint8_t>(m_settings.at(2))));
     ui->corrector1address->setValue((static_cast<uint8_t>(m_settings.at(3))));
     ui->corrector2address->setValue((static_cast<uint8_t>(m_settings.at(4))));
-    ui->corrector1startPosition->setValue((static_cast<uint8_t>(m_settings.at(5))) * ui->correctorsPositionMult->value());
-    ui->corrector2startPosition->setValue((static_cast<uint8_t>(m_settings.at(6))) * ui->correctorsPositionMult->value());
+    ui->corrector1startPosition->setValue((static_cast<int8_t>(m_settings.at(5))) * ui->correctorsPositionMult->value());
+    ui->corrector2startPosition->setValue((static_cast<int8_t>(m_settings.at(6))) * ui->correctorsPositionMult->value());
 
     ui->correctorPositionsTable->setRowCount(ui->positionsNum->value());
     ui->correctorPositionsTable->setColumnCount(1 + ui->correctorsNum->value());
@@ -498,16 +510,16 @@ void correctorControl::displaySettings()
             ui->correctorPositionsTable->setItem(i, 0, new QTableWidgetItem(QString::number(static_cast<uint8_t>(m_settings[i + 7]))));
         for (int j = 1; j < ui->correctorPositionsTable->columnCount(); j++)
             ui->correctorPositionsTable->setItem(i, j,
-                new QTableWidgetItem(QString::number((static_cast<uint8_t>(m_settings[i + 6 + j * 16])) * ui->correctorsPositionMult->value())));
+                new QTableWidgetItem(QString::number((static_cast<int8_t>(m_settings[i + 6 + j * 16])) * ui->correctorsPositionMult->value())));
     }
 
     connect(ui->correctorsPositionMult, SIGNAL(valueChanged(int)), this, SLOT(changeCorrectorsMult(int)), Qt::QueuedConnection);
     connect(ui->correctorsNum, SIGNAL(valueChanged(int)), this, SLOT(changeCorrectorsNum(int)), Qt::QueuedConnection);
     connect(ui->positionsNum, SIGNAL(valueChanged(int)), this, SLOT(changeCorrectorsPositionsNum(int)), Qt::QueuedConnection);
     connect(ui->extPositionControl, SIGNAL(toggled(bool)), this, SLOT(changeExtPositionMode(bool)), Qt::QueuedConnection);
-    connect(ui->corrector1startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromnterface()), Qt::QueuedConnection);
-    connect(ui->corrector2startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromnterface()), Qt::QueuedConnection);
-    connect(ui->correctorPositionsTable, SIGNAL(cellChanged(int,int)), this, SLOT(readSettingsFromnterface()), Qt::QueuedConnection);
+    connect(ui->corrector1startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromInterface()), Qt::QueuedConnection);
+    connect(ui->corrector2startPosition, SIGNAL(valueChanged(int)), this, SLOT(readSettingsFromInterface()), Qt::QueuedConnection);
+    connect(ui->correctorPositionsTable, SIGNAL(cellChanged(int,int)), this, SLOT(readSettingsFromInterface()), Qt::QueuedConnection);
 }
 
 QString correctorControl::checkSettings(QByteArray settings)
@@ -526,7 +538,7 @@ QString correctorControl::checkSettings(QByteArray settings)
     return errors;
 }
 
-void correctorControl::readSettingsFromnterface()
+void correctorControl::readSettingsFromInterface()
 {
 //    uint8_t correctorsNum;
 //    uint8_t positionsNum;
@@ -571,9 +583,7 @@ void correctorControl::loadDefaultSettings()
 
 int correctorControl::calcDiv(int num, int div)
 {
-    int divident = num / div;
-    if ((num - divident * div) > (div / 2))
-        return (divident + 1);
+    int divident = qRound(((qreal)num) / ((qreal)div));
     return divident;
 }
 
@@ -594,17 +604,21 @@ void correctorControl::displayCurrentValues(QByteArray packet)
     uint8_t temperature = static_cast<uint8_t>(packet.at(0));
     uint8_t adcValue = static_cast<uint8_t>(packet.at(1));
     uint8_t positionIndex = static_cast<uint8_t>(packet.at(2));
-    int readCorrector1value = (static_cast<uint8_t>(packet.at(4))) * 256 + (static_cast<uint8_t>(packet.at(3))) * 1;
-    int readCorrector2value = (static_cast<uint8_t>(packet.at(6))) * 256 + (static_cast<uint8_t>(packet.at(5))) * 1;
-    int writingCorrector1value = (static_cast<uint8_t>(packet.at(8))) * 256 + (static_cast<uint8_t>(packet.at(7))) * 1;
-    int writingCorrector2value = (static_cast<uint8_t>(packet.at(10))) * 256 + (static_cast<uint8_t>(packet.at(9))) * 1;
+//    int readCorrector1value = (static_cast<uint8_t>(packet.at(4))) * 256 + (static_cast<uint8_t>(packet.at(3))) * 1;
+//    int readCorrector2value = (static_cast<uint8_t>(packet.at(6))) * 256 + (static_cast<uint8_t>(packet.at(5))) * 1;
+//    int writingCorrector1value = (static_cast<uint8_t>(packet.at(8))) * 256 + (static_cast<uint8_t>(packet.at(7))) * 1;
+//    int writingCorrector2value = (static_cast<uint8_t>(packet.at(10))) * 256 + (static_cast<uint8_t>(packet.at(9))) * 1;
+    int16_t readCorrector1value = (packet.at(4) << 8) | (packet.at(3) & 0xFF);
+    int16_t readCorrector2value = (packet.at(6) << 8) | (packet.at(5) & 0xFF);
+    int16_t writingCorrector1value = (packet.at(8) << 8) | (packet.at(7) & 0xFF);
+    int16_t writingCorrector2value = (packet.at(10) << 8) | (packet.at(9) & 0xFF);
     uint8_t currentFlags = static_cast<uint8_t>(packet.at(11));
     uint8_t internalErrors = static_cast<uint8_t>(packet.at(12));
     uint8_t motorErrors[2];
     motorErrors[0] = static_cast<uint8_t>(packet.at(13));
     motorErrors[1] = static_cast<uint8_t>(packet.at(14));
-    uint8_t counter = static_cast<uint8_t>(packet.at(15));
-    uint8_t displayedError = static_cast<uint8_t>(packet.at(16));
+    //uint8_t counter = static_cast<uint8_t>(packet.at(15));
+    uint8_t displayedError = static_cast<uint8_t>(packet.at(15));
 
     QString report = QTime::currentTime().toString("hh:mm:ss.zzz") + "\n";
     report += ("Temperature: " + QString::number((int)temperature) + "\n");
@@ -665,7 +679,7 @@ void correctorControl::displayCurrentValues(QByteArray packet)
         report += "\n";
     }
 
-    report += ("Counter: " + QString::number((int)counter) + "\n");
+    //report += ("Counter: " + QString::number((int)counter) + "\n");
     report += ("Displayed error: " + QString::number((int)displayedError));
 
     ui->currentInformation->setPlainText(report);
@@ -857,6 +871,78 @@ void correctorControl::clearErrors()
         ui->labelCurrentProgress->setVisible(false);
         ui->centralWidget->setEnabled(true);
         QMessageBox::warning(this, "CLEAR ERRORS COMMAND ERROR", QString("Controller sent error code %1").arg(static_cast<uint8_t>(ackFrame.at(2))));
+        return;
+    }
+
+    ui->labelCurrentProgress->setVisible(false);
+    ui->centralWidget->setEnabled(true);
+}
+
+void correctorControl::refleshCurrentCorrectorValues()
+{
+    if (!ui->extPositionControl->isChecked())
+    {
+        ui->corrector1currentPosition->setEnabled(false);
+        ui->corrector2currentPosition->setEnabled(false);
+    }
+
+    int16_t correctorValues[2];
+    correctorValues[0] = ui->correctorsPositionMult->value() * ui->corrector1currentPosition->value();
+    correctorValues[1] = ui->correctorsPositionMult->value() * ui->corrector2currentPosition->value();
+
+    ui->corrector1positionLabel->setText("Corrector 1: " + QString::number(correctorValues[0]));
+    ui->corrector2positionLabel->setText("Corrector 2: " + QString::number(correctorValues[1]));
+}
+
+void correctorControl::readExtValuesFromInterface()
+{
+    if (!ui->extPositionControl->isChecked())
+    {
+        ui->corrector1currentPosition->setEnabled(false);
+        ui->corrector2currentPosition->setEnabled(false);
+    }
+
+    int16_t correctorValues[2];
+    correctorValues[0] = ui->correctorsPositionMult->value() * ui->corrector1currentPosition->value();
+    correctorValues[1] = ui->correctorsPositionMult->value() * ui->corrector2currentPosition->value();
+
+    ui->corrector1positionLabel->setText("Corrector 1: " + QString::number(correctorValues[0]));
+    ui->corrector2positionLabel->setText("Corrector 2: " + QString::number(correctorValues[1]));
+
+    if (!m_com.isOpen())
+        return;
+
+    QByteArray sendCurrentValuesFrame(11, 0);
+    sendCurrentValuesFrame[0] = 0xE2;
+    sendCurrentValuesFrame[1] = 0x17;
+    sendCurrentValuesFrame[2] = (correctorValues[0] >> 0) & 0xFF;
+    sendCurrentValuesFrame[3] = (correctorValues[0] >> 8) & 0xFF;
+    sendCurrentValuesFrame[4] = (correctorValues[1] >> 0) & 0xFF;
+    sendCurrentValuesFrame[5] = (correctorValues[1] >> 8) & 0xFF;
+    sendCurrentValuesFrame[6] = (ui->extPositionControl->isChecked() ? 1 : 0);
+
+    ui->labelCurrentProgress->setVisible(true);
+    ui->centralWidget->setEnabled(false);
+
+    QByteArray ackFrame = sendFrameAndWaitAck(sendCurrentValuesFrame, ACK_FRAME_CODE, ACK_FRAME_SIZE);
+
+    if (ackFrame.size() != ACK_FRAME_SIZE)
+        ackFrame = QByteArray(1, 0);
+    if (ackFrame.size() == 1)
+    {
+        if ((ackFrame.at(0) >= LIN_ERRORS_NUM) || (ackFrame.at(0) < 0))
+            ackFrame[0] = 0;
+        ui->labelCurrentProgress->setVisible(false);
+        ui->centralWidget->setEnabled(true);
+        QMessageBox::warning(this, linErrorHeaders[ackFrame.at(0)], linErrorDescriptions[ackFrame.at(0)]);
+        return;
+    }
+
+    if (ackFrame.at(2) != 0)
+    {
+        ui->labelCurrentProgress->setVisible(false);
+        ui->centralWidget->setEnabled(true);
+        QMessageBox::warning(this, "SEND EXT POSITIONS COMMAND ERROR", QString("Controller sent error code %1").arg(static_cast<uint8_t>(ackFrame.at(2))));
         return;
     }
 

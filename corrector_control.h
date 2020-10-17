@@ -10,7 +10,7 @@
 
 #include <QMap>
 
-#define CURRENT_DATA_SIZE   (17 + 3)
+#define CURRENT_DATA_SIZE   (16 + 3)
 #define SETTINGS_DATA_SIZE  (54 + 3)
 #define ACK_FRAME_SIZE      (1 + 3)
 
@@ -62,7 +62,7 @@ private slots:
 
     void changeExtPositionMode(bool isExtPositionChecked);
 
-    void readSettingsFromnterface();
+    void readSettingsFromInterface();
 
     void readSettingsFromController();
 
@@ -71,6 +71,10 @@ private slots:
     void readSettingsFromEeprom();
 
     void writeSettingsToEeprom();
+
+    void refleshCurrentCorrectorValues();
+
+    void readExtValuesFromInterface();
 
     void clearErrors();
 
